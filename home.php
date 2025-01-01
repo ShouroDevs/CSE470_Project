@@ -2,17 +2,15 @@
 include("./header.php");
 include 'fetchuserinfo.php';
 
-$booksFromAllUsers = $conn->prepare("
-    SELECT books.bookID, books.title, books.author, books.year_published, users.username, users.userID
-    FROM collection
-    JOIN books ON collection.bookID = books.bookID
-    JOIN users ON collection.userID = users.userID
-    WHERE collection.showcase = 1
-    AND users.userID != $viewingUser
+// Fetch available parking spots
+$spotsQuery = $conn->prepare("
+    SELECT id, name, latitude, longitude, available
+    FROM spots
+    WHERE available = 1
 ");
-
-$booksFromAllUsers->execute();
-$result = $booksFromAllUsers->get_result();
+$spotsQuery->execute();
+$spotsResult = $spotsQuery->get_result();
+$totalSpots = $spotsResult->num_rows; // Count the number of available spots
 ?>
 
 <!DOCTYPE html>
@@ -21,124 +19,88 @@ $result = $booksFromAllUsers->get_result();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/design.css">
-    <title>Homepage - Park & GO</title>
+    <title>Park & GO - Available Spots</title>
     <style>
         body {
-            background-image: url("./images/site.jpg");
-            background-size: cover;
-            background-color: black;
-            color: white;
-            background-repeat: no-repeat;
-            height: 100vh;
-            background-attachment: fixed;
-        }
-        .book-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #eaeaea;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
-        .book-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+        .container {
+            text-align: center;
+            padding: 10px;
         }
 
-        .book-box {
-            flex: 1 1 calc(33.333% - 20px);
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-            box-sizing: border-box;
-            margin-bottom: 20px;
-        }
-
-        .book-box h2 {
-            margin-top: 0;
-        }
-
-        .link {
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        .link:hover {
-            text-decoration: underline;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
+        .info-text {
+            font-size: 1.5rem;
             font-weight: bold;
-            transition: background-color 0.3s ease;
+            margin-bottom: 10px;
+            color: #00fff0;
+            text-shadow: 0 0 8px #00fff0, 0 0 16px #00fff0;
         }
 
-        .btn-secondary:hover {
-            background-color: #5a6268;
+        .map-container {
+            margin: 20px auto;
+            width: 85%; /* Slightly less wide */
+            height: 440px; /* 40px taller */
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0f2027;
+            box-shadow: 0 0 20px rgba(0, 255, 240, 0.6), 0 0 40px rgba(0, 255, 240, 0.4);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 </head>
 <body>
-    <div class="wholebody">
     <div class="container">
-        <h1>Parking Available Right NOW</h1>
-        <div class="book-list">
-        <?php if ($result->num_rows > 0): // Check if there are books available ?>
-            <?php while ($row = $result->fetch_assoc()): ?>
-                <div class="book-box">
-                    <h2>Title: <?= htmlspecialchars($row['title']) ?></h2>
-                    <p><b>Author:</b> <?= htmlspecialchars($row['author']) ?></p>
-                    <p><b>Published Year:</b> <?= htmlspecialchars($row['year_published']) ?></p>
-                    <p><b>Owner:</b> <a class="link" href="profile.php?userID=<?= htmlspecialchars($row['userID']) ?>" ><?= htmlspecialchars($row['username']) ?></a></p>
-                    
-                    <?php
-$checkExistingRequest = $conn->prepare("
-    SELECT * FROM swap
-    WHERE  bookID = ? AND status IN ('pending', 'accepted')
-");
-$checkExistingRequest->bind_param("i", $row['bookID']);
-$checkExistingRequest->execute();
-$existingRequestResult = $checkExistingRequest->get_result();
-
-if ($existingRequestResult->num_rows > 0) {
-    $existingRequestRow = $existingRequestResult->fetch_assoc();
-    if ($existingRequestRow['status'] == 'pending' || $existingRequestRow['status'] == 'accepted') {
-        ?>
-        <button class="btn-primary" disabled>Not Available</button>
-        <?php
-    }
-} else {
-    ?>
-    <button onclick="window.location.href='requestbook.php?bookID=<?= $row['bookID'] ?>'" class="btn-primary">Request For Swap</button>
-    <?php
-}
-?>
-
-            </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <p>No parking found.</p>
-        <?php endif; ?>
-        </div>
-        </div>
+        <p class="info-text">
+            <?= $totalSpots > 0 ? "Available parking spots: $totalSpots" : "No parking spots available." ?>
+        </p>
+        <div class="map-container">
+            <div id="map"></div>
         </div>
     </div>
-</div>
 
-<?php include("./footer.php"); ?>
+    <?php include("./footer.php"); ?>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const spots = [
+            <?php while ($spot = $spotsResult->fetch_assoc()): ?>
+            {
+                name: "<?= htmlspecialchars($spot['name']) ?>",
+                lat: <?= $spot['latitude'] ?>,
+                lng: <?= $spot['longitude'] ?>
+            },
+            <?php endwhile; ?>
+        ];
+
+        const map = L.map('map').setView([23.8103, 90.4125], 12); // Centered on Dhaka
+
+        // Adding tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '',
+        }).addTo(map);
+
+        // Adding markers
+        spots.forEach(spot => {
+            L.marker([spot.lat, spot.lng]).addTo(map)
+                .bindPopup(`<strong>${spot.name}</strong>`);
+        });
+    </script>
 </body>
 </html>
 
-
-
 <?php
-$booksFromAllUsers->close();
+$spotsQuery->close();
 $conn->close();
 ?>

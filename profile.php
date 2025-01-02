@@ -3,7 +3,7 @@ include 'fetchuserinfo.php';
 include("./header.php");
 
 if (isset($_GET['success']) && $_GET['success'] == 1): ?>
-    <p class="success-message">Book registered successfully!</p>
+    <p class="success-message">Parking space registered successfully!</p>
 <?php endif; ?>
 
 <!DOCTYPE html>
@@ -12,7 +12,7 @@ if (isset($_GET['success']) && $_GET['success'] == 1): ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/design.css">
-    <title><?= htmlspecialchars($user['first_name'] . " " . $user['last_name']) ?> - Bookworm Buddies</title>
+    <title><?= htmlspecialchars($user['first_name'] . " " . $user['last_name']) ?> - Parking Manager</title>
     <style>
         body {
             background-image: url("./images/site.png");
@@ -22,27 +22,107 @@ if (isset($_GET['success']) && $_GET['success'] == 1): ?>
             background-repeat: no-repeat;
             height: 100vh;
             background-attachment: fixed;
+            font-family: 'Roboto', sans-serif;
         }
 
-        .commentbox {
-            width: 30%;
-            max-width: 500px;
-            padding: 5px;
-            border: 1px solid #ddd;
+        .wholebody {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .userinfo, .parking-spaces {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            width: 80%;
+            max-width: 1200px;
+        }
+
+        .userinfo h1, .parking-spaces h2 {
+            font-size: 2.5em;
+            color: #00ff99;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 153, 0.7);
+        }
+
+        .parking-spaces ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .parking-spaces li {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .parking-spaces li:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .parking-spaces li b {
+            font-size: 1.2em;
+            color: #00ff99;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .parking-spaces li p {
+            color: #ddd;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .btn-primary {
+            background-color: #00ff99;
+            color: black;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1em;
             border-radius: 5px;
-            font-size: 16px;
-            color: #333;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            resize: vertical;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            margin-right: 10px;
+            margin-top: 10px;
         }
 
-        .commentbox:focus {
-            border-color: #007bff;
+        .btn-primary:hover {
+            background-color: #00cc80;
+            transform: translateY(-3px);
+        }
+
+        .btn-primary:focus {
             outline: none;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            box-shadow: 0 0 5px rgba(0, 255, 153, 0.7);
         }
 
+        .success-message {
+            text-align: center;
+            font-size: 1.5em;
+            color: #00ff99;
+            margin: 20px 0;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -54,7 +134,6 @@ if (isset($_GET['success']) && $_GET['success'] == 1): ?>
                 <p>Email: <b><?= htmlspecialchars($user['email']) ?></b></p>
                 <p>Date of Birth: <b><?= htmlspecialchars($user['date_of_birth']) ?></b></p>
                 <p>Username: <b><?= htmlspecialchars($user['username']) ?></b></p>
-                <!-- Only show update and logout buttons if the logged-in user is viewing their own profile -->
                 <?php if ($viewingUser == $userID): ?>
                     <button onclick="window.location.href='updateprofile.php'" class="btn-primary">Update Profile</button>
                     <button onclick="confirmDeleteAccount()" class="btn-primary">Delete Account</button>
@@ -65,153 +144,67 @@ if (isset($_GET['success']) && $_GET['success'] == 1): ?>
             <?php endif; ?>
         </section>
 
-        <section class="collections">
-            <h2>Book Collection:</h2>
-        
-            <!-- All Books, Showcased Books, Register New Book, Swapped Books Options -->
-            <div>
-                <?php if ($viewingUser == $userID): ?>
-                <button onclick="window.location.href='?userID=<?= $viewingUser ?>&show=all'" class="btn-primary">All Books</button>
-                <button onclick="window.location.href='?userID=<?= $viewingUser ?>&show=showcased'" class="btn-primary">Showcased Books</button>
-                <button onclick="window.location.href='?userID=<?= $viewingUser ?>&show=swapped'" class="btn-primary">Swapped Books</button>
-                <button onclick="window.location.href='registerbook.php'" class="btn-primary">Register New Book</button>
-                <?php endif; ?>
-            </div>
+        <section class="parking-spaces">
+            <h2>Your Parking Spaces:</h2>
 
             <?php
-            // Display books based on the query parameter (all, showcased, or swapped)
-            if (!isset($_GET['show']) || $_GET['show'] != 'swapped'): ?>
-                <?php $bookList = (isset($_GET['show']) && $_GET['show'] == 'showcased') ? $showcasedBooks : $books; ?>
-                <?php if (!empty($bookList)): ?>
-                    <ul>
-                        <?php foreach ($bookList as $book): ?>
-                            <li>
-                                <b>Title:</b> <?= htmlspecialchars($book['title']) ?><br>
-                                <b>Author:</b> <?= htmlspecialchars($book['author']) ?><br>
-                                <b>Published Year:</b> <?= htmlspecialchars($book['year_published']) ?>
-                                <br><br>
+            if (!$conn) {
+                die("Database connection failed: " . mysqli_connect_error());
+            }
 
-                                <!-- Book Edit or Delete Option -->
-                                <?php if ($viewingUser == $userID): ?>
-                                    <button onclick="window.location.href='editbookdetails.php?bookID=<?= htmlspecialchars($book['bookID']) ?>'" class="btn-primary">Edit</button>
-                                    <button onclick="window.location.href='deletebook.php?bookID=<?= htmlspecialchars($book['bookID']) ?>'" class="btn-primary">Delete</button>
-                                <?php endif; ?>
-            
-                                <!-- Showcase / Remove from Showcase Option -->
-                                <?php if ($viewingUser == $userID && isset($book['bookID'])): ?>
-                                    <?php if ($book['showcase'] == 0): ?>
-                                        <button onclick="window.location.href='showcase.php?bookID=<?= htmlspecialchars($book['bookID']) ?>'" class="btn-primary">Showcase</button>
-                                    <?php else: ?>
-                                        <button onclick="window.location.href='removeshowcase.php?bookID=<?= htmlspecialchars($book['bookID']) ?>'" class="btn-primary">Remove from Showcase</button>
-                                    <?php endif; ?>
-                                <?php endif; ?>
+            if (!isset($userID) || !is_numeric($userID)) {
+                die("Invalid user ID: " . htmlspecialchars($userID));
+            }
 
-                                <!-- Feedback section -->
-                                <?php if ($viewingUser != $userID): ?>
-                                    <form action="submitfeedback.php" method="post">
-                                        <input type="hidden" name="bookID" value="<?= htmlspecialchars($book['bookID']) ?>">
-                                        <textarea name="comment" class="commentbox" placeholder="Leave your feedback here" required></textarea><br>
-                                        <button type="submit" class="btn-primary">Submit Feedback</button>
-                                    </form>
-                                <?php endif; ?>
+            $parkingQuery = $conn->prepare("SELECT spot_id, name, description, available, latitude, longitude, created_at FROM registrationparkingspots WHERE user_id = ?");
+            if (!$parkingQuery) {
+                die("Error in query preparation: " . $conn->error);
+            }
 
-                                <h3>Feedback:</h3>
-                                <ul>
-                                    <?php
-                                    $feedbackQuery = $conn->prepare("SELECT feedback.feedbackID, feedback.comment, feedback.userID, feedback.reply, users.username FROM feedback JOIN users ON feedback.userID = users.userID WHERE feedback.bookID = ?");
-                                    $feedbackQuery->bind_param("i", $book['bookID']);
-                                    $feedbackQuery->execute();
-                                    $feedbackResult = $feedbackQuery->get_result();
+            $parkingQuery->bind_param("i", $userID);
+            $parkingQuery->execute();
+            $parkingResult = $parkingQuery->get_result();
 
-                                    if ($feedbackResult->num_rows > 0): 
-                                        while ($feedback = $feedbackResult->fetch_assoc()): ?>
-                                            <li>
-                                                <b><a href="profile.php?userID=<?= htmlspecialchars($feedback['userID']) ?>" class="username-link"><?= htmlspecialchars($feedback['username']) ?></a>:</b> 
-                                                <?= htmlspecialchars($feedback['comment']) ?><br>
-                                                
-                                                <!-- User options to delete their own feedback -->
-                                                <?php if ($feedback['userID'] == $userID): ?>
-                                                    <form action="deletefeedback.php" method="post" style="display: inline;">
-                                                    <input type="hidden" name="feedbackID" value="<?= htmlspecialchars($feedback['feedbackID']) ?>">
-                                                    <button type="submit" class="btn-primary" style="padding: 10px 10px;">Delete</button>
-                                                    </form>
-                                                <?php endif; ?>
+            if ($parkingResult === false) {
+                die("Error in query execution: " . $conn->error);
+            }
 
-
-                                                <!-- Book owner can reply to feedback -->
-                                                <?php if ($viewingUser == $userID && $feedback['userID'] != $userID): ?>
-                                                    <form action="replyfeedback.php" method="post">
-                                                        <input type="hidden" name="feedbackID" value="<?= htmlspecialchars($feedback['feedbackID']) ?>">
-                                                        <textarea name="reply" class="commentbox" placeholder="Reply to this feedback" required></textarea><br>
-                                                        <button type="submit" class="btn-primary">Submit Reply</button>
-                                                    </form>
-                                                <?php endif; ?>
-
-                                                <!-- Display reply if exists -->
-                                                <?php if (!empty($feedback['reply'])): ?>
-                                                    <div class="reply">
-                                                        <b>Reply from Book Owner:</b> <?= htmlspecialchars($feedback['reply']) ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endwhile;
-                                    else: ?>
-                                        <p>No feedback available for this book.</p>
-                                    <?php endif; ?>
-                                </ul>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php else: ?>
-                    <p>No books available.</p>
-                <?php endif; ?>
+            if ($parkingResult->num_rows > 0): ?>
+                <ul>
+                    <?php while ($parking = $parkingResult->fetch_assoc()): ?>
+                        <li>
+                            <b>Spot Name:</b> <?= htmlspecialchars($parking['name']) ?><br>
+                            <b>Description:</b> <?= htmlspecialchars($parking['description']) ?><br>
+                            <b>Available:</b> <?= $parking['available'] ? 'Yes' : 'No' ?><br>
+                            <b>Location:</b> Latitude: <?= htmlspecialchars($parking['latitude']) ?>, Longitude: <?= htmlspecialchars($parking['longitude']) ?><br>
+                            <b>Created At:</b> <?= htmlspecialchars($parking['created_at']) ?><br>
+                            
+                            <?php if ($viewingUser == $userID): ?>
+                                <button onclick="window.location.href='editparkingspot.php?spot_id=<?= htmlspecialchars($parking['spot_id']) ?>'" class="btn-primary">Edit</button>
+                                <button onclick="window.location.href='deleteparkingspot.php?spot_id=<?= htmlspecialchars($parking['spot_id']) ?>'" class="btn-primary">Delete</button>
+                            <?php endif; ?>
+                        </li>
+                    <?php endwhile; ?>
+                </ul>
+            <?php else: ?>
+                <p>No parking spaces registered yet.</p>
             <?php endif; ?>
 
-            <!-- Swapped Books Section (shown only if the user clicks on the "Swapped Books" button) -->
-            <?php if (isset($_GET['show']) && $_GET['show'] == 'swapped'): ?>
-            <section class="swapped-books" id="swappedBooks">
-                <h2>Swapped Books:</h2>
-
-                <?php
-                // Fetch swapped books for the user with 'accepted' status
-                $swappedBooksQuery = $conn->prepare("
-                    SELECT b.bookID, b.title, b.author, b.year_published, u.username, u.userID
-                    FROM books b
-                    JOIN swap s ON b.bookID = s.bookID
-                    JOIN users u ON s.ownerID = u.userID
-                    WHERE s.requesterID = ? AND s.status = 'accepted'
-                ");
-                $swappedBooksQuery->bind_param("i", $userID);
-                $swappedBooksQuery->execute();
-                $swappedBooksResult = $swappedBooksQuery->get_result();
-
-                if ($swappedBooksResult->num_rows > 0): ?>
-                    <ul>
-                        <?php while ($swappedBook = $swappedBooksResult->fetch_assoc()): ?>
-                            <li>
-                                <b>Title:</b> <?= htmlspecialchars($swappedBook['title']) ?><br>
-                                <b>Author:</b> <?= htmlspecialchars($swappedBook['author']) ?><br>
-                                <b>Published Year:</b> <?= htmlspecialchars($swappedBook['year_published']) ?><br>
-                                <b>Owner:</b> <a class="link" href="profile.php?userID=<?= htmlspecialchars($swappedBook['userID']) ?>"><?= htmlspecialchars($swappedBook['username']) ?></a>
-                            </li>
-                        <?php endwhile; ?>
-                    </ul>
-                <?php else: ?>
-                    <p>No swapped books available.</p>
-                <?php endif; ?>
-            </section>
+            <?php if ($viewingUser == $userID): ?>
+                <button onclick="window.location.href='registerparkingspot.php'" class="btn-primary">Register New Parking Space</button>
             <?php endif; ?>
-
         </section>
     </div>
+
     <script>
-    function confirmDeleteAccount() {
-        const confirmed = confirm("Are you sure you want to delete your account?");
-        if (confirmed) {
-            window.location.href = 'deleteaccount.php';
+        function confirmDeleteAccount() {
+            const confirmed = confirm("Are you sure you want to delete your account?");
+            if (confirmed) {
+                window.location.href = 'deleteaccount.php';
+            }
         }
-    }
     </script>
+
 <?php include("./footer.php"); ?>
 </body>
 </html>

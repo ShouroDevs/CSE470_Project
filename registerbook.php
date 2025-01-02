@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $longitude = $_POST['longitude'];
     $available = $_POST['available'];
     $description = $_POST['description']; // Get the description
+    $price = $_POST['price']; // Get the price
 
     // Get the logged-in user's ID from the session
     $userID = $_SESSION['user_id'];
@@ -32,17 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $row_count = $row['row_count'];
     $row_count = $row_count + 1;
     $spotID = $row_count;
-    // Insert the parking spot into the spots table (including description)
-    $spotQuery = $conn->prepare("INSERT INTO spots (name, latitude, longitude, available) VALUES (?, ?, ?, ? )");
-    $spotQuery->bind_param("ssdi", $spotName, $latitude, $longitude, $available);
+    // Insert the parking spot into the spots table (including description and price)
+    $spotQuery = $conn->prepare("INSERT INTO spots (name, latitude, longitude, available, price) VALUES (?, ?, ?, ?, ?)");
+    $spotQuery->bind_param("ssdis", $spotName, $latitude, $longitude, $available, $price);
 
     if ($spotQuery->execute()) {
         // Get the spot_id of the newly added spot
         $spotID = $conn->insert_id;
 
         // Now insert this registration into the registrationparkingspots table
-        $registrationQuery = $conn->prepare("INSERT INTO registrationparkingspots (spot_id, user_id , name ,description, available , latitude , longitude )VALUES (?, ? , ? , ? , ? , ? , ?)");
-        $registrationQuery->bind_param("iissisd", $spotID , $userID ,   $spotName ,$description , $available , $latitude, $longitude);
+        $registrationQuery = $conn->prepare("INSERT INTO registrationparkingspots (spot_id, user_id , name ,description, available , latitude , longitude , price) VALUES (?, ? , ? , ? , ? , ? , ?, ?)");
+        $registrationQuery->bind_param("iissisd", $spotID , $userID ,   $spotName ,$description , $available , $latitude, $longitude, $price);
 
         if ($registrationQuery->execute()) {
             // Redirect to the profile page after successfully registering the parking spot
@@ -188,6 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <label for="available">Availability (1 for available, 0 for not available):</label>
                 <input class="textbox" type="number" name="available" min="0" max="1" required><br>
+
+                <label for="price">Price (per hour):</label>
+                <input class="textbox" type="number" name="price" step="0.01" required><br>
 
                 <input type="hidden" name="latitude" id="latitude">
                 <input type="hidden" name="longitude" id="longitude">

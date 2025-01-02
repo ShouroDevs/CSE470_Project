@@ -24,7 +24,7 @@
 <body>
     <footer>
         
-        <p>&copy Bookworm Buddies, 2024</p>
+        <p>@online parking community, 2025</p>
 
     </footer>
     

@@ -1,81 +1,333 @@
 <?php
 include("./header.php");
-include 'fetchuserinfo.php';
+include 'fetchuserinfo.php'; // Ensure user authentication and connection setup
 
-// Fetch swap requests
-$swapRequestsQuery = $conn->prepare("
-    SELECT * FROM swap
-    JOIN books ON swap.bookID = books.bookID
-    WHERE ownerID = ? OR requesterID = ?
-");
-$swapRequestsQuery->bind_param("ii", $userID, $userID);
-$swapRequestsQuery->execute();
-$swapRequestsResult = $swapRequestsQuery->get_result();
+// Retrieve the logged-in user’s ID from the session
+$userID = $_SESSION['user_id']; // Make sure the session contains the user ID
+
+// Check if the user is logged in
+if (!isset($userID)) {
+    header("Location: home.php"); // Redirect to login page if user is not logged in
+    exit;
+}
+
+// Fetch all parking spots that belong to the logged-in user (owner)
+$spotsQuery = $conn->prepare("SELECT spot_id, name FROM registrationparkingspots WHERE user_id = ?");
+$spotsQuery->bind_param("i", $userID);
+$spotsQuery->execute();
+$spotsResult = $spotsQuery->get_result();
+
+// If no spots are found for this user
+if ($spotsResult->num_rows === 0) {
+    echo "<div class='no-spot-message'>";
+    echo "<h3>No Parking Spots Registered</h3>";
+    echo "<p>It looks like you haven't registered any parking spots yet. Please feel free to create one and start offering parking to others.</p>";
+    echo "<a href='registerbook.php' class='create-spot-button'>Create a Parking Spot</a>";
+    echo "</div>";
+    
+}
+
+// Initialize total request counter
+$totalRequests = 0;
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./css/design.css">
-    <title>Swap Requests</title>
+    <link rel="stylesheet" href="css/style.css">
+    <title>Parking Spot Reservation Requests</title>
     <style>
         body {
-            background-image: url("./images/site.png");
-            background-size: cover;
-            background-color: black;
-            color: white;
-            background-repeat: no-repeat;
-            height: 100vh;
-            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f3f4f8, #e2e6ef);
+            margin: 0;
+            padding: 0;
         }
-        .swap-request  {
-            flex: 1 1 calc(33.333% - 20px);
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 15px;
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            font-size: 2.4em;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        .spot-section {
+            margin-bottom: 40px;
+            position: relative;
+            border-bottom: 2px solid #ececec;
+            padding-bottom: 20px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .spot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3498db;
+            color: white;
+            padding: 18px 30px;
             border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-            box-sizing: border-box;
+            font-size: 1.3em;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-        .btn-danger { background-color: #dc3545; }
-        .waiting-msg, .accepted-msg, .declined-msg { margin-top: 10px; }
+
+        .spot-header h3 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .request-list {
+            margin-top: 20px;
+        }
+
+        .request-card {
+            background-color: #f7f8fa;
+            padding: 22px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+
+        .request-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .request-card p {
+            font-size: 1.1em;
+            margin: 10px 0;
+            color: #555;
+        }
+
+        .request-card p b {
+            color: #2980b9;
+        }
+
+        .no-requests {
+            text-align: center;
+            font-style: italic;
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin: 30px auto 0;
+            padding: 12px 25px;
+            background-color: #2980b9;
+            color: white;
+            font-size: 1.2em;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: #3498db;
+        }
+
+        /* Total Request Counter */
+        .total-request-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50%;
+            font-size: 1.8em;
+            font-weight: bold;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .total-request-counter:hover {
+            background-color: #c0392b;
+        }
+
+        .spot-header .spot-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #f2f2f2;
+        }
+
+        .request-card .card-content {
+            font-size: 1.1em;
+            margin: 10px 0;
+            color: #555;
+        }
+
+        .no-spot-message {
+            text-align: center;
+            background-color: #f9f9f9;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            transition: all 0.3s ease;
+        }
+
+        .no-spot-message h3 {
+            font-size: 2em;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .no-spot-message p {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .create-spot-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background-color: #2980b9;
+            color: white;
+            font-size: 1.2em;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .create-spot-button:hover {
+            background-color: #3498db;
+            transform: scale(1.05);
+        }
+
+        .create-spot-button:focus {
+            outline: none;
+        }
+
+        /* Responsive design for smaller screens */
+        @media screen and (max-width: 600px) {
+            .no-spot-message {
+                padding: 30px 20px;
+            }
+
+            .no-spot-message h3 {
+                font-size: 1.8em;
+            }
+
+            .no-spot-message p {
+                font-size: 1.1em;
+            }
+
+            .create-spot-button {
+                padding: 12px 30px;
+                font-size: 1.1em;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="wholebody">
-<div class="collections">
-    <h1>Swap Requests</h1>
-    <?php while ($swapRequestRow = $swapRequestsResult->fetch_assoc()): ?>
-        <div class="swap-request">
-            <h3>Swap Request Details</h3>
-            <p><strong>Book ID: </strong> <?= htmlspecialchars($swapRequestRow['bookID']) ?></p>
-            <p><strong>Book Title: </strong> <?= htmlspecialchars($swapRequestRow['title']) ?></p>
-            <p><strong>Requester ID: </strong> <?= htmlspecialchars($swapRequestRow['requesterID']) ?> </p>
-            <p><strong>Owner ID: </strong><?= htmlspecialchars($swapRequestRow['ownerID']) ?></p>
-            <p><strong>Status: </strong> <?= htmlspecialchars($swapRequestRow['status']) ?></p>
-            
-            <?php if ($swapRequestRow['status'] == 'pending' && $swapRequestRow['ownerID'] == $userID): ?>
-                <button onclick="window.location.href='acceptswap.php?swapID=<?= $swapRequestRow['swapID'] ?>'" class="btn-primary">Accept</button>
-                <button onclick="window.location.href='declineswap.php?swapID=<?= $swapRequestRow['swapID'] ?>'" class="btn-danger">Decline</button>
-            <?php elseif ($swapRequestRow['status'] == 'pending' && $swapRequestRow['requesterID'] == $userID): ?>
-                <p class="waiting-msg">Waiting for owner's response...</p>
-            <?php elseif ($swapRequestRow['status'] == 'accepted'): ?>
-                <p class="accepted-msg">Swap accepted!</p>
-                <button onclick="window.location.href='returnbook.php?swapID=<?= $swapRequestRow['swapID'] ?>'" class="btn-primary">Mark as Returned</button>
-            <?php elseif ($swapRequestRow['status'] == 'declined'): ?>
-                <p class="declined-msg">Swap declined.</p>
-            <?php endif; ?>
-        </div>
-    <?php endwhile; ?>
+
+<div class="container">
+    <h2>Parking Spot Reservation Requests</h2>
+
+    <!-- Total Request Counter -->
+    <div class="total-request-counter">
+        <?php
+        // Iterate over each spot to count total requests
+        while ($spot = $spotsResult->fetch_assoc()) {
+            $spotID = $spot['spot_id'];
+
+            // Get the reservation requests (pending or other status) for the current spot
+            $requestsQuery = $conn->prepare("
+                SELECT u.userID AS reserver_id, u.username, u.email, u.first_name, u.last_name
+                FROM registrationparkingspots rp
+                JOIN users u ON rp.user_id = u.userID
+                WHERE rp.spot_id = ? AND rp.status > 0"); // Filter spots with any status (booked/reserved)
+            $requestsQuery->bind_param("i", $spotID);
+            $requestsQuery->execute();
+            $requestsResult = $requestsQuery->get_result();
+
+            // Update the total request count
+            $totalRequests += $requestsResult->num_rows;
+
+            // Reset the request query for the next iteration
+            $requestsQuery->close();
+        }
+
+        echo $totalRequests; // Display total request count
+        ?>
+    </div>
+
+    <?php
+    // Reset the result pointer and display details of each spot
+    $spotsResult->data_seek(0); // Reset the result pointer to start from the beginning
+
+    while ($spot = $spotsResult->fetch_assoc()) {
+        $spotID = $spot['spot_id'];
+        $spotName = $spot['name'];
+
+        // Get the reservation requests (pending or other status) for the current spot
+        $requestsQuery = $conn->prepare("
+            SELECT u.userID AS reserver_id, u.username, u.email, u.first_name, u.last_name
+            FROM registrationparkingspots rp
+            JOIN users u ON rp.user_id = u.userID
+            WHERE rp.spot_id = ? AND rp.status > 0");
+        $requestsQuery->bind_param("i", $spotID);
+        $requestsQuery->execute();
+        $requestsResult = $requestsQuery->get_result();
+
+        // Display spot and reservation details
+        echo "<div class='spot-section'>";
+        echo "<div class='spot-header'><h3 class='spot-name'>" . htmlspecialchars($spotName) . "</h3></div>";
+
+        if ($requestsResult->num_rows > 0) {
+            echo "<div class='request-list'>";
+            while ($request = $requestsResult->fetch_assoc()) {
+                echo "<div class='request-card'>";
+                echo "<div class='card-content'>";
+                echo "<p><b>Request from:</b> " . htmlspecialchars($request['username']) . "</p>";
+                echo "<p><b>Email:</b> " . htmlspecialchars($request['email']) . "</p>";
+                echo "<p><b>Full Name:</b> " . htmlspecialchars($request['first_name']) . " " . htmlspecialchars($request['last_name']) . "</p>";
+                echo "</div>";
+                echo "</div>";
+            }
+            echo "</div>";
+        } else {
+            echo "<p class='no-requests'>No pending requests for this spot.</p>";
+        }
+
+        echo "</div>";
+    }
+    if ($spotsResult->num_rows > 0) {
+        $spotsQuery->close();
+        $requestsQuery->close();
+        $conn->close();
+
+    }
+
+    
+    ?>
+
+    <a href="home.php" class="back-button">Back to Dashboard</a>
 </div>
-</div>
-<?php include("./footer.php"); ?>
+
 </body>
 </html>
-
-<?php
-$swapRequestsQuery->close();
-$conn->close();
-?>

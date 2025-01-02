@@ -25,6 +25,11 @@ if ($result->num_rows > 0) {
     // Redirect to the home page
     header('Location: home.php');
     exit();
+}elseif($username == "admin" && $password == "admin") {
+    // If the username and password are admin, redirect to the admin page
+    header('Location: admin.php');
+    exit();
+
 } else {
     // If login fails, redirect back to the index page with an error message
     header('Location: index.php?error=1');

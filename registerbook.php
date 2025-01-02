@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $row_count = $row_count + 1;
     $spotID = $row_count;
     // Insert the parking spot into the spots table (including description and price)
-    $spotQuery = $conn->prepare("INSERT INTO spots (name, latitude, longitude, available, price) VALUES (?, ?, ?, ?, ?)");
-    $spotQuery->bind_param("ssdis", $spotName, $latitude, $longitude, $available, $price);
+    $spotQuery = $conn->prepare("INSERT INTO spots (name, latitude, longitude, available) VALUES (?, ?, ?, ? )");
+    $spotQuery->bind_param("ssdi", $spotName, $latitude, $longitude, $available);
 
     if ($spotQuery->execute()) {
         // Get the spot_id of the newly added spot
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Now insert this registration into the registrationparkingspots table
         $registrationQuery = $conn->prepare("INSERT INTO registrationparkingspots (spot_id, user_id , name ,description, available , latitude , longitude , price) VALUES (?, ? , ? , ? , ? , ? , ?, ?)");
-        $registrationQuery->bind_param("iissisd", $spotID , $userID ,   $spotName ,$description , $available , $latitude, $longitude, $price);
+        $registrationQuery->bind_param("iissisdi", $spotID , $userID ,   $spotName ,$description , $available , $latitude, $longitude, $price);
 
         if ($registrationQuery->execute()) {
             // Redirect to the profile page after successfully registering the parking spot

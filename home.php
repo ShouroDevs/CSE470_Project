@@ -176,7 +176,7 @@ $searchQuery = isset($_POST['q']) ? $_POST['q'] : '';
     
         displaySpots(23.8103, 90.4125, 10);
     }
-    <?php endif; ?>
+    <?php endif; ?> 
 </script>
 
 </body>

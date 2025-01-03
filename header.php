@@ -10,7 +10,7 @@
     <nav class="navbar">
       <div class="logo"><a href="home.php">Park & GO</a></div>
       
-      <!-- Updated search form -->
+  
       <div id="search-box">
         <form id="search-form" action="home.php" method="POST">
         <input type="text" id="search-bar" name="q" placeholder="Search..." required />

@@ -3,28 +3,23 @@ session_start();
 include 'dbconnect.php';
 include("./header.php");
 
-// Enable error reporting
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit();
 }
 
-// Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get user input from the form
     $spotName = $_POST['spot_name'];
     $latitude = $_POST['latitude'];
     $longitude = $_POST['longitude'];
     $available = $_POST['available'];
-    $description = $_POST['description']; // Get the description
-    $price = $_POST['price']; // Get the price
+    $description = $_POST['description']; 
+    $price = $_POST['price']; 
 
-    // Get the logged-in user's ID from the session
     $userID = $_SESSION['user_id'];
     $sql = "SELECT COUNT(*) AS row_count FROM spots";
     $result = $conn->query($sql);
@@ -33,35 +28,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $row_count = $row['row_count'];
     $row_count = $row_count + 1;
     $spotID = $row_count;
-    // Insert the parking spot into the spots table (including description and price)
     $spotQuery = $conn->prepare("INSERT INTO spots (name, latitude, longitude, available) VALUES (?, ?, ?, ? )");
     $spotQuery->bind_param("ssdi", $spotName, $latitude, $longitude, $available);
 
     if ($spotQuery->execute()) {
-        // Get the spot_id of the newly added spot
         $spotID = $conn->insert_id;
 
-        // Now insert this registration into the registrationparkingspots table
         $registrationQuery = $conn->prepare("INSERT INTO registrationparkingspots (spot_id, user_id , name ,description, available , latitude , longitude , price) VALUES (?, ? , ? , ? , ? , ? , ?, ?)");
         $registrationQuery->bind_param("iissisdi", $spotID , $userID ,   $spotName ,$description , $available , $latitude, $longitude, $price);
 
         if ($registrationQuery->execute()) {
-            // Redirect to the profile page after successfully registering the parking spot
             header('Location: profile.php?success=1'); 
             exit();
         } else {
-            // Error registering the parking spot
             $error = "Error linking the parking spot to your account: " . $registrationQuery->error;
         }
 
-        // Close the registration prepared statement
         $registrationQuery->close();
     } else {
-        // Error adding the parking spot
         $error = "Error adding the parking spot: " . $spotQuery->error;
     }
 
-    // Close the prepared statement for spots table
     $spotQuery->close();
     $conn->close();
 }
@@ -167,19 +154,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     </style>
 
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <!-- Leaflet Control Geocoder CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 </head>
 <body>
 
     <div class="container">
-        <!-- Form container -->
         <div class="form-container">
             <h1>Add a New Parking Spot</h1>
             
-            <!-- Form to add parking spot details -->
             <form action="registerbook.php" method="post" id="parkingForm">
                 <label for="spot_name">Parking Spot Name:</label>
                 <input class="textbox" type="text" name="spot_name" required><br>
@@ -204,7 +187,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
         </div>
 
-        <!-- Map container -->
         <div class="map-container">
             <div id="map"></div>
         </div>
@@ -215,10 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
-        // Initialize the map
-        const map = L.map('map').setView([23.8103, 90.4125], 12); // Centered on Dhaka
+        const map = L.map('map').setView([23.8103, 90.4125], 12); 
 
-        // Adding tile layer to the map
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: '',
@@ -226,22 +206,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         let marker;
 
-        // Click event to add a marker and capture coordinates
         map.on('click', function (e) {
-            // Remove existing marker if there's any
             if (marker) {
                 map.removeLayer(marker);
             }
 
-            // Add new marker where user clicked
             marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
 
-            // Set the coordinates in the hidden input fields
             document.getElementById('latitude').value = e.latlng.lat;
             document.getElementById('longitude').value = e.latlng.lng;
         });
 
-        // Adding search functionality inside the map
         const searchControl = L.Control.geocoder().addTo(map);
     </script>
 </body>

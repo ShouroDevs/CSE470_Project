@@ -3,7 +3,7 @@ include 'fetchuserinfo.php';
 include("./header.php");
 
 if (isset($_GET['success']) && $_GET['success'] == 1): ?>
-    <p class="success-message">Parking space registered successfully!</p>
+    <p class="success-message">Task successfull</p>
 <?php endif; ?>
 
 <!DOCTYPE html>
@@ -191,7 +191,7 @@ if (isset($_GET['success']) && $_GET['success'] == 1): ?>
             <?php endif; ?>
 
             <?php if ($viewingUser == $userID): ?>
-                <button onclick="window.location.href='registerparkingspot.php'" class="btn-primary">Register New Parking Space</button>
+                <button onclick="window.location.href='registerbook.php'" class="btn-primary">Register New Parking Space</button>
             <?php endif; ?>
         </section>
     </div>

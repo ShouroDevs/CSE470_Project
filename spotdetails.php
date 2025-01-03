@@ -4,13 +4,11 @@
 include 'fetchuserinfo.php';
 include("./header.php");
 
-// Check if the 'id' parameter is present in the URL and is a valid number
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("Invalid parking spot ID. Please check the URL.");
 }
-$spot_id = $_GET['id'];  // Get the parking spot ID from the URL
+$spot_id = $_GET['id'];  
 
-// Fetch parking spot details from the database based on the spot_id
 $query = "SELECT * FROM registrationparkingspots WHERE spot_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $spot_id);
@@ -18,7 +16,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 
-    // Prepare the statement
 $stmtQ = $conn->prepare("INSERT INTO reservation (user_id, spot_id) VALUES (?, ?)");
 $stmtQ->bind_param("ii", $userID, $spot_id);
 $stmtQ->execute();
@@ -96,7 +93,6 @@ $spot = $result->fetch_assoc();
             background-color: #2ecc71;
         }
 
-        /* Media Queries for responsiveness */
         @media (max-width: 1200px) {
             .spot-details {
                 width: 90%;
@@ -183,4 +179,3 @@ $spot = $result->fetch_assoc();
 
 <?php include("./footer.php"); ?> 
 
-<!-- 1 -->

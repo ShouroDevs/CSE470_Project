@@ -1,7 +1,5 @@
 <?php
-include 'fetchuserinfo.php'; // all okay
-
-// Fetch reservations
+include 'fetchuserinfo.php'; 
 $reservationsQuery = "
     SELECT 
         r.user_id,
@@ -27,7 +25,7 @@ $reservationsQuery = "
 ";
 $reservationsResult = $conn->query($reservationsQuery);
 
-// Fetch parking spot owners
+
 $ownersQuery = "
     SELECT 
         rp.spot_id,
@@ -49,7 +47,6 @@ $ownersQuery = "
 ";
 $ownersResult = $conn->query($ownersQuery);
 
-// Fetch complaints
 $complaintsQuery = "
     SELECT 
         c.complaint_id,
@@ -71,7 +68,7 @@ $complaintsQuery = "
 ";
 $complaintsResult = $conn->query($complaintsQuery);
 
-// Handle reservation deletion
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_reservation'])) {
         $userIDToDelete = $_POST['delete_user_id'];

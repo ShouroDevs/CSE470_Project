@@ -2,8 +2,6 @@
 
 include("./header.php");
 include 'fetchuserinfo.php';
-
-// Fetch available parking spots
 $spotsQuery = $conn->prepare("
     SELECT id, name, latitude, longitude, available
     FROM spots
@@ -12,7 +10,7 @@ $spotsQuery = $conn->prepare("
 $spotsQuery->execute();
 $spotsResult = $spotsQuery->get_result();
 
-$searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  // Get the search query
+$searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  
 ?>
 
 <!DOCTYPE html>
@@ -86,49 +84,47 @@ $searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  // Get the search query
         <?php endwhile; ?>
     ];
 
-    const map = L.map('map').setView([23.8103, 90.4125], 12); // Default to Dhaka
+    const map = L.map('map').setView([23.8103, 90.4125], 12); 
 
-    // Adding tile layer
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: '',
     }).addTo(map);
 
-    // Haversine formula to calculate distance
     function calculateDistance(lat1, lng1, lat2, lng2) {
         const toRad = (value) => (value * Math.PI) / 180;
-        const R = 6371; // Earth's radius in km
+        const R = 6371; 
         const dLat = toRad(lat2 - lat1);
         const dLng = toRad(lng2 - lng1);
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
             Math.sin(dLng / 2) * Math.sin(dLng / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distance in km
+        return R * c; 
     }
 
-    // Display spots within radius and update counter
+  
     function displaySpots(centerLat, centerLng, radius) {
-        // Clear previous markers
+       
         map.eachLayer(layer => {
             if (layer instanceof L.Marker) {
                 map.removeLayer(layer);
             }
         });
 
-        // Filter spots within radius
+       
         const filteredSpots = spots.filter(spot => {
             const distance = calculateDistance(centerLat, centerLng, spot.lat, spot.lng);
             return distance <= radius;
         });
 
-        // Update available spots count
         const infoText = document.getElementById("available-spots-info");
         infoText.textContent = filteredSpots.length > 0
             ? `Available parking spots within ${radius}km: ${filteredSpots.length}`
             : `No parking spots available within ${radius}km.`;
 
-        // Add markers for filtered spots
+       
         filteredSpots.forEach(spot => {
             const marker = L.marker([spot.lat, spot.lng]).addTo(map);
             marker.bindPopup(
@@ -137,9 +133,9 @@ $searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  // Get the search query
         });
     }
 
-    // Handle geolocation and search
+  
     <?php if (!empty($searchQuery)): ?>
-    // Fetch location of searched query
+   
     const searchQuery = "<?= htmlspecialchars($searchQuery) ?>";
     fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json`)
         .then(response => response.json())
@@ -148,10 +144,10 @@ $searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  // Get the search query
                 const searchLat = parseFloat(data[0].lat);
                 const searchLng = parseFloat(data[0].lon);
 
-                // Center map on searched location
+             
                 map.setView([searchLat, searchLng], 10);
 
-                // Show spots within 100km
+              
                 displaySpots(searchLat, searchLng, 10);
             } else {
                 console.error("No results found for the search query.");
@@ -164,21 +160,20 @@ $searchQuery = isset($_POST['q']) ? $_POST['q'] : '';  // Get the search query
             const userLat = position.coords.latitude;
             const userLng = position.coords.longitude;
 
-            // Center map on user's location
             map.setView([userLat, userLng], 14);
 
-            // Show spots within 10km
+           
             displaySpots(userLat, userLng, 10);
         }, error => {
             console.error("Error fetching geolocation:", error.message);
 
-            // Fallback to default location (Dhaka)
+       
             displaySpots(23.8103, 90.4125, 10);
         });
     } else {
         console.error("Geolocation not supported by this browser.");
 
-        // Fallback to default location (Dhaka)
+    
         displaySpots(23.8103, 90.4125, 10);
     }
     <?php endif; ?>
@@ -192,4 +187,3 @@ $spotsQuery->close();
 $conn->close();
 ?>
 
-<!-- 1 -->

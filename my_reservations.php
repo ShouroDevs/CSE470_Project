@@ -1,8 +1,8 @@
 <?php
-include("./header.php");  // External navbar included
-include 'fetchuserinfo.php';  // Assuming this fetches logged-in user info and assigns it to $viewingUser
+include("./header.php");  
+include 'fetchuserinfo.php';  
 
-// Query to fetch reserved parking spots for the logged-in user from reservation and registrationparkingspots tables
+
 $reservedParkingQuery = $conn->prepare("
     SELECT rp.spot_id, rp.name, rp.description, rp.latitude, rp.longitude, rp.price, rp.status
     FROM reservation r
@@ -11,10 +11,10 @@ $reservedParkingQuery = $conn->prepare("
 ");
 
 if ($reservedParkingQuery === false) {
-    die('Error preparing statement: ' . $conn->error); // Print error message if the statement failed
+    die('Error preparing statement: ' . $conn->error); 
 }
 
-$reservedParkingQuery->bind_param("i", $viewingUser); // Assuming $viewingUser contains the logged-in userID
+$reservedParkingQuery->bind_param("i", $viewingUser); 
 $reservedParkingQuery->execute();
 $reservedParkingResult = $reservedParkingQuery->get_result();
 ?>
@@ -26,7 +26,7 @@ $reservedParkingResult = $reservedParkingQuery->get_result();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Reserved Parking Spots</title>
     <style>
-        /* General Reset */
+     
         * {
             margin: 0;
             padding: 0;
@@ -44,12 +44,12 @@ $reservedParkingResult = $reservedParkingQuery->get_result();
             justify-content: flex-start;
         }
 
-        /* Adjusting for the existing navbar */
+    
         .container {
             width: 100%;
             max-width: 1200px;
             padding: 40px;
-            margin-top: 80px; /* Space for fixed navbar */
+            margin-top: 80px; 
             background: #fff;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             border-radius: 15px;
@@ -153,7 +153,7 @@ $reservedParkingResult = $reservedParkingQuery->get_result();
     </style>
 </head>
 <body>
-    <!-- Navbar is included from header.php -->
+
     <div class="container">
         <h1 class="section-title">Your Reserved Parking Spots</h1>
         <div class="parking-list">
@@ -179,8 +179,7 @@ $reservedParkingResult = $reservedParkingQuery->get_result();
 </body>
 </html>
 
-<?php
-// Close the statement and connection
+
 $reservedParkingQuery->close();
 $conn->close();
 ?>

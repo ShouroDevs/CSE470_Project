@@ -1,23 +1,19 @@
 <?php
 include("./header.php");
-include 'fetchuserinfo.php'; // Ensure user authentication and connection setup
+include 'fetchuserinfo.php';
 
-// Retrieve the logged-in user’s ID from the session
-$userID = $_SESSION['user_id']; // Make sure the session contains the user ID
+$userID = $_SESSION['user_id']; 
 
-// Check if the user is logged in
 if (!isset($userID)) {
-    header("Location: home.php"); // Redirect to login page if user is not logged in
+    header("Location: home.php"); 
     exit;
 }
 
-// Fetch all parking spots that belong to the logged-in user (owner)
 $spotsQuery = $conn->prepare("SELECT spot_id, name FROM registrationparkingspots WHERE user_id = ?");
 $spotsQuery->bind_param("i", $userID);
 $spotsQuery->execute();
 $spotsResult = $spotsQuery->get_result();
 
-// If no spots are found for this user
 if ($spotsResult->num_rows === 0) {
     echo "<div class='no-spot-message'>";
     echo "<h3>No Parking Spots Registered</h3>";
@@ -27,7 +23,6 @@ if ($spotsResult->num_rows === 0) {
     
 }
 
-// Initialize total request counter
 $totalRequests = 0;
 ?>
 <!DOCTYPE html>
@@ -143,7 +138,6 @@ $totalRequests = 0;
             background-color: #3498db;
         }
 
-        /* Total Request Counter */
         .total-request-counter {
             position: absolute;
             top: 20px;
@@ -222,7 +216,6 @@ $totalRequests = 0;
             outline: none;
         }
 
-        /* Responsive design for smaller screens */
         @media screen and (max-width: 600px) {
             .no-spot-message {
                 padding: 30px 20px;
@@ -248,43 +241,36 @@ $totalRequests = 0;
 <div class="container">
     <h2>Parking Spot Reservation Requests</h2>
 
-    <!-- Total Request Counter -->
     <div class="total-request-counter">
         <?php
-        // Iterate over each spot to count total requests
         while ($spot = $spotsResult->fetch_assoc()) {
             $spotID = $spot['spot_id'];
 
-            // Get the reservation requests (pending or other status) for the current spot
             $requestsQuery = $conn->prepare("
                 SELECT u.userID AS reserver_id, u.username, u.email, u.first_name, u.last_name
                 FROM registrationparkingspots rp
                 JOIN users u ON rp.user_id = u.userID
-                WHERE rp.spot_id = ? AND rp.status > 0"); // Filter spots with any status (booked/reserved)
+                WHERE rp.spot_id = ? AND rp.status > 0"); 
             $requestsQuery->bind_param("i", $spotID);
             $requestsQuery->execute();
             $requestsResult = $requestsQuery->get_result();
 
-            // Update the total request count
             $totalRequests += $requestsResult->num_rows;
 
-            // Reset the request query for the next iteration
             $requestsQuery->close();
         }
 
-        echo $totalRequests; // Display total request count
+        echo $totalRequests; 
         ?>
     </div>
 
     <?php
-    // Reset the result pointer and display details of each spot
-    $spotsResult->data_seek(0); // Reset the result pointer to start from the beginning
+    $spotsResult->data_seek(0); 
 
     while ($spot = $spotsResult->fetch_assoc()) {
         $spotID = $spot['spot_id'];
         $spotName = $spot['name'];
 
-        // Get the reservation requests (pending or other status) for the current spot
         $requestsQuery = $conn->prepare("
             SELECT u.userID AS reserver_id, u.username, u.email, u.first_name, u.last_name
             FROM registrationparkingspots rp
@@ -294,7 +280,6 @@ $totalRequests = 0;
         $requestsQuery->execute();
         $requestsResult = $requestsQuery->get_result();
 
-        // Display spot and reservation details
         echo "<div class='spot-section'>";
         echo "<div class='spot-header'><h3 class='spot-name'>" . htmlspecialchars($spotName) . "</h3></div>";
 
